@@ -1,36 +1,237 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Next.js Internationalization with i18next
 
-## Getting Started
+This project demonstrates how to set up internationalization (i18n) in a Next.js application using i18next, with the new `app` router and TypeScript. It includes a language switcher component to dynamically change the language of the application.
 
-First, run the development server:
+## Table of Contents
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- [Introduction](#introduction)
+- [Installation](#installation)
+- [Configuration](#configuration)
+  - [Creating `next-i18next.config.ts`](#creating-next-i18nextconfigts)
+  - [Setting up i18next](#setting-up-i18next)
+  - [Adding Translation Files](#adding-translation-files)
+- [Setting Up Root Layout](#setting-up-root-layout)
+- [Creating a Language Switcher](#creating-a-language-switcher)
+- [Usage](#usage)
+- [Contributing](#contributing)
+- [License](#license)
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Introduction
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Internationalization (i18n) is essential for applications that support multiple languages. This guide explains how to integrate i18next with a Next.js application using the new `app` router and TypeScript. The setup includes creating a language switcher to dynamically change the language of the application.
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+## Installation
 
-## Learn More
+1. **Clone the Repository**: Start by cloning the repository to your local machine.
 
-To learn more about Next.js, take a look at the following resources:
+    ```bash
+    git clone https://github.com/yourusername/nextjs-i18n.git
+    cd nextjs-i18n
+    ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+2. **Install Dependencies**: Navigate to the project directory and install the necessary dependencies.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+    ```bash
+    npm install
+    ```
 
-## Deploy on Vercel
+## Configuration
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Creating `next-i18next.config.ts`
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+1. **Configuration File**: Create a configuration file named `next-i18next.config.ts` at the root of your project.
+2. **Define Locales**: In this file, define the default locale and the list of supported locales. This configuration file tells Next.js and i18next which languages your application will support.
+
+    ```typescript
+    // next-i18next.config.ts
+
+    import { NextConfig } from 'next-i18next';
+
+    const config: NextConfig = {
+      i18n: {
+        defaultLocale: 'en',
+        locales: ['en', 'es'],
+      },
+    };
+
+    export default config;
+    ```
+
+### Setting up i18next
+
+1. **Create i18n Setup File**: Create a setup file for i18next, typically named `i18n.ts`, in a `lib` directory.
+2. **Initialize i18next**: In this setup file, initialize i18next with necessary plugins such as `HttpApi` for loading translation files, `LanguageDetector` for detecting the user's language, and `initReactI18next` for React integration.
+3. **Configure Backend and Detection**: Configure i18next to load translation files from the correct path and set up language detection order and caching methods.
+
+    ```typescript
+    // lib/i18n.ts
+
+    import i18n from 'i18next';
+    import { initReactI18next } from 'react-i18next';
+    import HttpApi from 'i18next-http-backend';
+    import LanguageDetector from 'i18next-browser-languagedetector';
+    import nextI18NextConfig from '../next-i18next.config';
+
+    i18n
+      .use(HttpApi)
+      .use(LanguageDetector)
+      .use(initReactI18next)
+      .init({
+        ...nextI18NextConfig.i18n,
+        backend: {
+          loadPath: '/locales/{{lng}}/{{ns}}.json',
+        },
+        detection: {
+          order: ['queryString', 'cookie'],
+          caches: ['cookie'],
+        },
+        react: {
+          useSuspense: false,
+        },
+      });
+
+    export default i18n;
+    ```
+
+### Adding Translation Files
+
+1. **Create Locale Directories**: Create a `locales` directory inside the `public` folder. Within this directory, create subdirectories for each supported language (e.g., `en` for English, `es` for Spanish).
+
+    ```
+    /public
+      /locales
+        /en
+          /common.json
+        /es
+          /common.json
+    ```
+
+2. **Add Translation JSON Files**: In each language subdirectory, add JSON files containing key-value pairs for translations. For example, create a `common.json` file with translations for common phrases used in your application.
+
+    Example `common.json` for English (`en`):
+
+    ```json
+    {
+      "welcome": "Welcome",
+      "description": "This is a description"
+    }
+    ```
+
+    Example `common.json` for Spanish (`es`):
+
+    ```json
+    {
+      "welcome": "Bienvenido",
+      "description": "Esta es una descripción"
+    }
+    ```
+
+## Setting Up Root Layout
+
+1. **Modify Root Layout**: Modify the root layout component, typically `app/layout.tsx`, to wrap the application with i18next providers. This ensures that i18next is available throughout your application.
+
+    ```typescript
+    // app/layout.tsx
+
+    import type { Metadata } from 'next';
+    import { Inter } from 'next/font/google';
+    import './globals.css';
+    import { ReactNode } from 'react';
+    import Providers from './providers';
+    import LanguageSwitcher from './components/LanguageSwitcher';
+
+    const inter = Inter({ subsets: ['latin'] });
+
+    export const metadata: Metadata = {
+      title: 'Create Next App',
+      description: 'Generated by create next app',
+    };
+
+    export default function RootLayout({
+      children,
+    }: {
+      children: ReactNode;
+    }) {
+      return (
+        <html lang="en">
+          <body className={inter.className}>
+            <Providers>
+              <LanguageSwitcher />
+              {children}
+            </Providers>
+          </body>
+        </html>
+      );
+    }
+    ```
+
+## Creating a Language Switcher
+
+1. **Create Language Switcher Component**: Create a `LanguageSwitcher` component that uses i18next's `changeLanguage` method to switch languages.
+2. **Button Implementation**: Implement buttons for each supported language. When a button is clicked, it calls `changeLanguage` with the respective language code.
+
+    ```typescript
+    // app/components/LanguageSwitcher.tsx
+
+    'use client';
+
+    import { useTranslation } from 'react-i18next';
+
+    const LanguageSwitcher = () => {
+      const { i18n } = useTranslation();
+
+      const changeLanguage = (lng: string) => {
+        i18n.changeLanguage(lng);
+      };
+
+      return (
+        <div>
+          <button onClick={() => changeLanguage('en')}>English</button>
+          <button onClick={() => changeLanguage('es')}>Español</button>
+        </div>
+      );
+    };
+
+    export default LanguageSwitcher;
+    ```
+
+    Create a `Providers` component:
+
+    ```typescript
+    // app/providers.tsx
+
+    'use client';
+
+    import { ReactNode } from 'react';
+    import { I18nextProvider } from 'react-i18next';
+    import i18n from '../lib/i18n';
+
+    type ProvidersProps = {
+      children: ReactNode;
+    };
+
+    const Providers = ({ children }: ProvidersProps) => {
+      return <I18nextProvider i18n={i18n}>{children}</I18nextProvider>;
+    };
+
+    export default Providers;
+    ```
+
+## Usage
+
+1. **Run the Development Server**: Start the development server using:
+
+    ```bash
+    npm run dev
+    ```
+
+2. **Access the Application**: Open your browser and navigate to `http://localhost:3000` to see the application in action.
+3. **Switch Languages**: Use the language switcher buttons to change the language dynamically. The text in your application should update according to the selected language.
+
+## Contributing
+
+Contributions are welcome! If you find any issues or want to add new features, please feel free to submit a Pull Request. Ensure your code follows the project's coding standards and includes relevant tests.
+
+## License
+
+This project is licensed under the MIT License. See the LICENSE file for more details.
